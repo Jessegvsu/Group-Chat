@@ -1,50 +1,60 @@
 import socketserver
-import threading
 from socketserver import TCPServer
+import threading
 
+lock = threading.Lock()
+names = []
+clients = {}
 class GroupChat(socketserver.BaseRequestHandler):
-    def listen(self, name):
-        #
-    def handle(self):
 
-        names = []
-        threads = []
+    def send(self, message, sender_name):
+        #open socket with name
+        with lock:
+            for name, sock in clients.items():
+                if name != sender_name:
+                    print(f"Sending {sender_name + " " + message}")
+                    sock.sendall((sender_name + " " + message).encode("utf-8"))
+
+    def handle(self):
+        name = None
         #parses message
 
         try:
             while True:
-                pieces =[b'']
-                total = 0
-                while b'\n' not in pieces[-1] and total < 10_000:
-                    pieces.append(self.request.recv(2000))
-                    total += len(pieces[-1])
-                self.data = b''.join(pieces)
+                self.data = self.request.recv(1024)
+                if not self.data:
+                    break
+
                 name = self.data[:10].decode("utf-8")
 
                 #if the name included in client message has not been recieved,
                 # add it to names and open new thread with name and start thread.
                 if name not in names:
-                    names.append(name)
-                    thread = threading.Thread(target=self.listen, args=name)
-                    threads.append(thread)
-                    thread.start()
+                    with lock:
+                        names.append(name)
+                        clients[name] = self.request
+                        print(f"New user {name}")
 
                 #print data from client for server use
                 print(f"Received from: {self.client_address[0]}:")
-                print(f"Recieved message: {self.data.decode("utf-8")}")
+                print(f"Recieved message From {name.strip()}: {self.data[10:].decode("utf-8")}")
+
 
                 #if client message is system quit close socket to client
-                #   MODIFY TO ACCOUNT FOR THREADS
-                if self.data == b"system: quit":
-                    self.request.close()
-                    break
+
+                if self.data[10:] == b"system: quit":
+                    #delete name from names and client list
+                    with lock:
+                        del clients[name]
+                        names.remove(name)
+                        self.request.close()
+                        break
 
                 #send message back to client reflecting what it is.
-                #   REMOVE TO ACCOUNT FOR SENDING TO MULTIPLE CLIENTS
-                self.request.sendall(f"Server recieved: {self.data}".encode("utf-8"))
+                self.send(self.data[10:].decode("utf-8"), name)
+
 
         except ConnectionResetError:
-            self.request.close()
             print("Connection reset by peer")
 
 
@@ -56,7 +66,7 @@ if __name__ == '__main__':
         HOST, PORT = "localhost", 5000
         TCPServer.allow_reuse_port = True
         TCPServer.allow_reuse_address = True
-        with socketserver.TCPServer((HOST, PORT), GroupChat) as server:
+        with socketserver.ThreadingTCPServer((HOST, PORT), GroupChat) as server:
             server.serve_forever()
 
     except KeyboardInterrupt:
