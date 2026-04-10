@@ -8,7 +8,7 @@ clients = {}
 class GroupChat(socketserver.BaseRequestHandler):
 
     def send(self, message, sender_name):
-        #open socket with name
+        #sends message to all clients except sender.
         with lock:
             for name, sock in clients.items():
                 if name != sender_name:
@@ -17,18 +17,18 @@ class GroupChat(socketserver.BaseRequestHandler):
 
     def handle(self):
         name = None
-        #parses message
 
         try:
             while True:
+                #recieves message
                 self.data = self.request.recv(1024)
                 if not self.data:
                     break
-
+                #loads name
                 name = self.data[:10].decode("utf-8")
 
                 #if the name included in client message has not been recieved,
-                # add it to names and open new thread with name and start thread.
+                # add it to names, and add connetion to client dict and open new thread with name and start thread.
                 if name not in names:
                     with lock:
                         names.append(name)
@@ -43,14 +43,14 @@ class GroupChat(socketserver.BaseRequestHandler):
                 #if client message is system quit close socket to client
 
                 if self.data[10:] == b"system: quit":
-                    #delete name from names and client list
+                    #delete name from names and client connection dict
                     with lock:
                         del clients[name]
                         names.remove(name)
                         self.request.close()
                         break
                 if self.data[10:].decode("utf-8").strip() != "":
-                    #send message back to client reflecting what it is.
+                    #send message back to all other clients except sender
                     self.send(self.data[10:].decode("utf-8"), name)
 
 

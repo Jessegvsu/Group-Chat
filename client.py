@@ -2,6 +2,7 @@ import socket
 import threading
 
 def listen(sock):
+    #listens for new messages and prints them
     while True:
         try:
             recieved = sock.recv(1024)
@@ -16,7 +17,6 @@ def listen(sock):
             break
 
 if __name__ == '__main__':
-    #Connects to server
     '''
     while True:
         try:
@@ -50,7 +50,7 @@ if __name__ == '__main__':
         thread.start()
         #sends name by itself to server
         sock.sendall(name.encode("utf-8"))
-        #create loop for interacting with server
+        #loop for sending to server
         print("Type: 'system: quit' to exit")
         while True:
             data = name + input()
@@ -60,6 +60,4 @@ if __name__ == '__main__':
                 sock.close()
                 break
             sock.sendall(data.encode("utf-8"))
-            #received = str(sock.recv(1024), "utf-8")
-            #print("Received:", received)
     print("program closed")
