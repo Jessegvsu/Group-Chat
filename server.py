@@ -49,9 +49,9 @@ class GroupChat(socketserver.BaseRequestHandler):
                         names.remove(name)
                         self.request.close()
                         break
-
-                #send message back to client reflecting what it is.
-                self.send(self.data[10:].decode("utf-8"), name)
+                if self.data[10:].decode("utf-8").strip() != "":
+                    #send message back to client reflecting what it is.
+                    self.send(self.data[10:].decode("utf-8"), name)
 
 
         except ConnectionResetError:

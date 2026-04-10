@@ -7,27 +7,32 @@ def listen(sock):
             recieved = sock.recv(1024)
             if not recieved:
                 break
-            print(recieved.decode("utf-8"))
+            message = recieved.decode("utf-8")
+            name = message[:10].strip()
+            output = f"[{name}] {message[10:]}"
+            print(output)
         except:
             print("Connection closed")
             break
 
 if __name__ == '__main__':
     #Connects to server
-
+    '''
     while True:
         try:
             print("Type server IP address:")
             IP = input()
             print("Type server port:")
             port = int(input())
-            print("Connected to", IP, " @ port ", port)
             break
         except (ValueError, TypeError):
             print("Please enter a valid port number:")
-
+'''
+    IP = "localhost"
+    port = 5000
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.connect((IP, port))
+        print("Connected to", IP, " @ port ", port)
 
         while True:
             print("Type a your name")
@@ -43,8 +48,10 @@ if __name__ == '__main__':
                 break
         thread = threading.Thread(target=listen, args=(sock,))
         thread.start()
+        #sends name by itself to server
+        sock.sendall(name.encode("utf-8"))
         #create loop for interacting with server
-
+        print("Type: 'system: quit' to exit")
         while True:
             data = name + input()
             #print("Sent: " + data)
